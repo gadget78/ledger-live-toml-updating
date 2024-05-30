@@ -10,10 +10,10 @@ import toml
 
 # You can change these variables to match your setup
 xrpl = '/opt/xahaud/bin/xahaud' # Replace with your XRPL node executable eg. "/opt/rippled/bin/rippled" or "/opt/xahaud/bin/xahaud"
-load_type = 'listener' # 'standalone' mode is when its loaded directly, it then uses a timer to trigger the updates, 'listener' mode is for when being ran by the listener/seperate script to trigger the update.
+load_type = 'listener' # 'standalone' mode is when its loaded directly, it then uses "wait_time" to trigger the updates, 'listener' mode is for being triggered extermally, with the listener.py, or with a crontab setting.
 mode = 'node' # 'validator' for validator type, so it checks/logs the AMMENDMENTS, and so it saves toml via API, 'node' has no ammendments and saves locally
 wait_time = 1800 # Used in 'standalone' mode only, is the wait time before re-creating .toml (in seconds)
-data_point_amount = 48 # amount of data points to collect, for showing in graph
+data_point_amount = 48 # amount of data points to collect (for showing in graph)
 api_url = 'https://yourhost.com/toml.php'  # Replace with your API URL
 api_key = 'key'  # Replace with your API key, this can be anything you want, you need to update the php script to match
 toml_path = '/home/www/.well-known/xahau.toml' # path to local .toml file, for use in node mode
@@ -75,6 +75,7 @@ def get_xrpl_server_info(key, timenow):
         swp_data = ast.literal_eval(toml_data.get('STATUS')[0].get('SWP',"[]"))
         status_count_data = ast.literal_eval(toml_data.get('STATUS')[0].get('STATUS_COUNT',"[]"))
         wss_connect_data = ast.literal_eval(toml_data.get('STATUS')[0].get('WSS_CONNECTS',"[]"))
+        file_desc_data = ast.literal_eval(toml_data.get('STATUS')[0].get('FD_COUNT',"[]"))
         time_data = ast.literal_eval(toml_data.get('STATUS')[0].get('TIME',"[]"))
 
         cpu_usage_current = run_command("top -n1 -b -U xahaud | awk '/" + os.path.basename(xrpl) + "/{print $9}'")
@@ -99,6 +100,10 @@ def get_xrpl_server_info(key, timenow):
         wss_connect_data.append(websocket_connections)
         if len(wss_connect_data) > data_point_amount: wss_connect_data.pop(0)
 
+        file_desc_count = run_command("lsof -n -p $(pidof xahaud) | wc -l")
+        file_desc_data.append(file_desc_count)
+        if len(file_desc_data) > data_point_amount: file_desc_data.pop(0)
+
         time_usage_current = timenow.strftime("%H:%M")
         time_data.append(time_usage_current)
         if len(time_data) > data_point_amount: time_data.pop(0)
@@ -120,9 +125,10 @@ PEERS = "{peers}"
 CPU = "{cpu_data}"
 RAM = "{ram_data}"
 HDD = "{hdd_data}"
-SWP = "{hdd_data}"
+SWP = "{swp_data}"
 STATUS_COUNT = "{status_count_data}"
 WSS_CONNECTS = "{wss_connect_data}"
+FD_COUNT = "{file_desc_data}"
 TIME = "{time_data}"
 
 KEY = "{key}"
