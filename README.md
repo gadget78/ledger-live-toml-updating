@@ -21,30 +21,30 @@ Mainnet example here: https://mainnet.validator.report/ and here: https://mainne
 
 Prerequisites:
 
-free, df, awk, pip
+free, df, awk, pip, sysstat
 
-    sudo apt install pip 
+    sudo apt install pip sysstat
 
 Python3 requires: requests
 
-    `sudo pip3 install requests toml`
+    sudo pip3 install requests toml
 
 Optional text editor: nano
 
-If you want to use JUST for you Node, then you can do that by JUST using the updater.py file.
+If you want to use this JUST for you Node, then you can do that by JUST using the updater.py file. and running python3 update.py
 Upload Pre-existing Files: Upload update.py and listener.py to the validator server or use nano to create these files and paste the contents accordingly, or you can git clone.
 
 ### Editing update.py:
 Modify the following lines:
 
  - `xrpl` = 'xahaud' # Replace with your XRPL node executable eg. "rippled" or "xahaud"
- - `load_type` = 'standalone' # 'standalone' when its loaded direct, it then uses a timer to trigger the update, 'listener' when being ran by the listener script to trigger the update.
- - `mode` = 'node' # 'validator' for validator type, so it checks/logs the AMMENDMENTS, and so it saves toml via API, 'node' has no ammendments and saves locally
+ - `load_type` = 'standalone' # option of 'standalone' or 'listener', when in standalone it uses a built in timer to trigger the update, and 'listener' will do do one update a stop.
+ - `mode` = 'node' # option of 'node' or 'validator', when using validator type, it checks/logs the AMMENDMENTS, and saves toml via API, 'node' has no ammendments and saves locally
  - `wait_time` = 900 # wait time before re-creating .toml (in seconds)
- - `data_point_amount` = 6 # amount of data points to collect, for showing in graph
- - `api_url` = 'https://yourhost.com/toml.php'  # Replace with your API URL
+ - `data_point_amount` = 6 # amount of data points to retain in .toml file, (useful for limiting graph data to a day)
+ - `api_url` = 'https://yourhost.com/toml.php'  # Replace with your API URL (when in validator mode)
  - `api_key` = 'key'  # Replace with your API key, this can be anything you want, you need to update the php script to match
- - `file_path` = '/home/www/.well-known/xahau.toml' # path to local .toml file, for use in node mode
+ - `file_path` = '/home/www/.well-known/xahau.toml' # path to local .toml file (for use in node mode)
  - `allowlist_path` = '/root/xahl-node/nginx_allowlist.conf' # allow list path, for use in connections output (node mode)
  - `websocket_port` = '6008' # port thats used for websocket (for use in connections, in node mode)
 
@@ -70,16 +70,21 @@ then Set file permissions to 644
 
 ### Editing index.html:
 
-Replace .well-known/xahau.toml with the correct TOML file path (use xrp-ledger.toml for Mainnet)
+Replace .well-known/xahau.toml with the correct TOML file path (use xrp-ledger.toml for xrpl Mainnet)
 
 
 # PART 3, Starting the Script, 
 
-To run the script,
+To run the script you have many options
 
-if you want to run in 'listener' mode type, have `load_mode = 'listener'` in the update.py setting, and do `nohup python3 listener.py &` this then updates the .toml file depending on the ledger action
+- if you want to trigger update every ledger close, then have `load_mode = 'listener'` in the update.py setting, and do `nohup python3 listener.py &` this then updates the .toml file depending on the ledger action
 
-if you want to update the .toml file at regular intavals, set `load_mode = 'standalone'`, and adjust `wait_time = 60` in updater.py file, and then do `nohup python3 update.py` 
+- if you want to update the .toml file at regular intervals, set `load_mode = 'standalone'`, and adjust `wait_time = 60` in updater.py file, and then do `nohup python3 update.py`
+
+- or another method, have `load_mode = 'listener'` set in update.py file, and then setup a cronjob with the time frame you want,
+ for example a entry of `*/15 * * * * /usr/bin/python3 /root/xahl-node/updater.py` would run updater every 15 minutes.
+
+- or manuall by a simple `python3 update.py` (make sure file has correct run permission `chmod +x update.py`)
 
 ### Stopping the Script:
 

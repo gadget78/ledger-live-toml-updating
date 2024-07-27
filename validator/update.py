@@ -13,7 +13,7 @@ xrpl = '/opt/xahaud/bin/xahaud' # Replace with your XRPL node executable eg. "/o
 load_type = 'listener' # 'standalone' mode is when its loaded directly, it then uses "wait_time" to trigger the updates, 'listener' mode is for being triggered extermally, with the listener.py, or with a crontab setting.
 mode = 'node' # 'validator' for validator type, so it checks/logs the AMMENDMENTS, and so it saves toml via API, 'node' has no ammendments and saves locally
 wait_time = 1800 # Used in 'standalone' mode only, is the wait time before re-creating .toml (in seconds)
-data_point_amount = 48 # amount of data points to collect (for showing in graph)
+data_point_amount = 96 # amount of data points to collect (for showing in graph)
 api_url = 'https://yourhost.com/toml.php'  # Replace with your API URL
 api_key = 'key'  # Replace with your API key, this can be anything you want, you need to update the php script to match
 toml_path = '/home/www/.well-known/xahau.toml' # path to local .toml file, for use in node mode
@@ -36,7 +36,7 @@ def get_xrpl_server_info(key, timenow):
         status_count = int(server_info_data['result']['info']['state_accounting']['full']['transitions'])
         version = server_info_data['result']['info']['build_version']
         status_time = int(server_info_data['result']['info']['server_state_duration_us']) / 1000000
-        node_size = server_info_data['result']['info']['node_size']
+        node_size = server_info_data['result']['info'].get('node_size', 'unknown') # provide a fallback default, just in case the admin port isnt used/working
         ledger = server_info_data['result']['info'].get('validated_ledger', {}).get('seq', 0)
         ledgers = server_info_data['result']['info']['complete_ledgers']
         peers = server_info_data['result']['info']['peers']
@@ -73,6 +73,8 @@ def get_xrpl_server_info(key, timenow):
         ram_data = ast.literal_eval(toml_data.get('STATUS')[0].get('RAM',"[]"))
         hdd_data = ast.literal_eval(toml_data.get('STATUS')[0].get('HDD',"[]"))
         swp_data = ast.literal_eval(toml_data.get('STATUS')[0].get('SWP',"[]"))
+        hddio_data = ast.literal_eval(toml_data.get('STATUS')[0].get('HDD_IO',"[]"))
+        peers_data = ast.literal_eval(toml_data.get('STATUS')[0].get('PEERS_DATA',"[]"))
         status_count_data = ast.literal_eval(toml_data.get('STATUS')[0].get('STATUS_COUNT',"[]"))
         wss_connect_data = ast.literal_eval(toml_data.get('STATUS')[0].get('WSS_CONNECTS',"[]"))
         file_desc_data = ast.literal_eval(toml_data.get('STATUS')[0].get('FD_COUNT',"[]"))
@@ -93,6 +95,19 @@ def get_xrpl_server_info(key, timenow):
         swp_usage_current = run_command("free | awk '/Swap:/ {printf(\"%.2f%\"), $3/$2 * 100}'")
         swp_data.append(swp_usage_current)
         if len(swp_data) > data_point_amount: swp_data.pop(0)
+
+        try:
+            hddio_current = run_command("iostat -c 1 2 | awk '/^ / { print $4 }' | tail -1")
+            hddio_check = float(hddio_current)
+        except Exception as e:
+            # If there's an error set to 100 (if iosat isnt installed, or there isnt a response)
+            print(f"error occured trying to get hdd io data: {e}")
+            hddio_current = 100.0
+        hddio_data.append(hddio_current)
+        if len(hddio_data) > data_point_amount: hddio_data.pop(0)
+
+        peers_data.append(peers)
+        if len(peers_data) > data_point_amount: peers_data.pop(0)
 
         status_count_data.append(status_count)
         if len(status_count_data) > data_point_amount: status_count_data.pop(0)
@@ -126,6 +141,8 @@ CPU = "{cpu_data}"
 RAM = "{ram_data}"
 HDD = "{hdd_data}"
 SWP = "{swp_data}"
+HDD_IO = "{hddio_data}"
+PEERS_DATA = "{peers_data}"
 STATUS_COUNT = "{status_count_data}"
 WSS_CONNECTS = "{wss_connect_data}"
 FD_COUNT = "{file_desc_data}"
