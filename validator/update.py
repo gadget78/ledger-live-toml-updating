@@ -92,7 +92,13 @@ def get_xrpl_server_info(key, timenow):
         hdd_data.append(hdd_usage_current)
         if len(hdd_data) > data_point_amount: hdd_data.pop(0)
 
-        swp_usage_current = run_command("free | awk '/Swap:/ {printf(\"%.2f%\"), $3/$2 * 100}'")
+        try:
+            swp_usage_current = run_command("free | awk '/Swap:/ {printf(\"%.2f%\"), $3/$2 * 100}'")
+            swp_check = float(swp_usage_current)
+        except Exception as e:
+            # If there's an error set it to 0, like if swp isnt setup etc
+            print(f"error occured trying to get hdd swp data: {e}")
+            swp_usage_current = 0 
         swp_data.append(swp_usage_current)
         if len(swp_data) > data_point_amount: swp_data.pop(0)
 
