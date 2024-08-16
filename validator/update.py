@@ -80,15 +80,33 @@ def get_xrpl_server_info(key, timenow):
         file_desc_data = ast.literal_eval(toml_data.get('STATUS')[0].get('FD_COUNT',"[]"))
         time_data = ast.literal_eval(toml_data.get('STATUS')[0].get('TIME',"[]"))
 
-        cpu_usage_current = run_command("top -n1 -b -U xahaud | awk '/" + os.path.basename(xrpl) + "/{print $9}'")
+        try:
+            cpu_usage_current = run_command("top -b -n 1 -p $(pgrep -u " + os.path.basename(xrpl) + " " + os.path.basename(xrpl) + ") | awk '/" + os.path.basename(xrpl) + "/{print $9}'")
+            cpu_check = float(cpu_usage_current)
+        except Exception as e:
+            # If there's an error set it to 100, like if top doesnt respond properly
+            print(f"error occured trying to get cpu data: {e}")
+            cpu_usage_current = 100
         cpu_data.append(cpu_usage_current)
         if len(cpu_data) > data_point_amount: cpu_data.pop(0)
 
-        ram_usage_current = run_command("free | awk '/Mem:/ {printf(\"%.2f\"), $3/$2 * 100}'")
+        try:
+            ram_usage_current = run_command("free | awk '/Mem:/ {printf(\"%.2f\"), $3/$2 * 100}'")
+            ram_check = float(ram_usage_current)
+        except Exception as e:
+            # If there's an error, set it to 100, like if free doesnt respond properly
+            print(f"error occured trying to get ram data: {e}")
+            ram_usage_current = 100
         ram_data.append(ram_usage_current)
         if len(ram_data) > data_point_amount: ram_data.pop(0)
 
-        hdd_usage_current = run_command("df -h . | awk 'NR==2{print $5}'")
+        try:
+            hdd_usage_current = run_command("df -h . | awk 'NR==2{print $5}'")
+            hdd_check = float(hdd_usage_current)
+        except Exception as e:
+            # If there's an error, set it to 100, like if df doesnt respond properly
+            print(f"error occured trying to get hdd_usage data: {e}")
+            hdd_usage_current = 100
         hdd_data.append(hdd_usage_current)
         if len(hdd_data) > data_point_amount: hdd_data.pop(0)
 
@@ -96,8 +114,8 @@ def get_xrpl_server_info(key, timenow):
             swp_usage_current = run_command("free | awk '/Swap:/ {printf(\"%.2f%\"), $3/$2 * 100}'")
             swp_check = float(swp_usage_current)
         except Exception as e:
-            # If there's an error set it to 0, like if swp isnt setup etc
-            print(f"error occured trying to get hdd swp data: {e}")
+            # If there's an error, set it to 0, like if swp isnt setup etc
+            print(f"error occured trying to get hdd_swp data: {e}")
             swp_usage_current = 0 
         swp_data.append(swp_usage_current)
         if len(swp_data) > data_point_amount: swp_data.pop(0)
@@ -106,8 +124,8 @@ def get_xrpl_server_info(key, timenow):
             hddio_current = run_command("iostat -c 1 2 | awk '/^ / { print $4 }' | tail -1")
             hddio_check = float(hddio_current)
         except Exception as e:
-            # If there's an error set to 100 (if iosat isnt installed, or there isnt a response)
-            print(f"error occured trying to get hdd io data: {e}")
+            # If there's an error, set to 100, like if iosat isnt installed, or there isnt a response
+            print(f"error occured trying to get hdd_io data: {e}")
             hddio_current = 100.0
         hddio_data.append(hddio_current)
         if len(hddio_data) > data_point_amount: hddio_data.pop(0)
