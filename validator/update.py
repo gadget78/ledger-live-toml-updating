@@ -54,31 +54,41 @@ def run_command(command):
 
 def get_xrpl_server_info(key, timenow):
     try:
-        server_info_result = subprocess.run([xrpl, "server_info"], capture_output=True, text=True)
-        server_info_data = json.loads(server_info_result.stdout)
+        try: 
+            server_info_result = subprocess.run([xrpl, "server_info"], capture_output=True, text=True)
+            server_info_data = json.loads(server_info_result.stdout)
 
-        status = server_info_data['result']['info']['server_state']
-        status_count = int(server_info_data['result']['info']['state_accounting']['full']['transitions'])
-        status_overflow = int(server_info_data['result']['info']['jq_trans_overflow']) 
-        version = server_info_data['result']['info']['build_version']
-        status_time = int(server_info_data['result']['info']['server_state_duration_us']) / 1000000
-        #node_size = server_info_data['result']['info'].get('node_size', 'unknown') # provide a fallback default, just in case the admin port isn't used/working
-        ledger = server_info_data['result']['info'].get('validated_ledger', {}).get('seq', 0)
-        ledgers = server_info_data['result']['info']['complete_ledgers']
-        peers = server_info_data['result']['info']['peers']
-        network = server_info_data['result']['info'].get('network_id', 0) # Mainnet doesn't provide a network id, so default 0
-
-        uptime_in_seconds = server_info_data['result']['info']['uptime']
-        days = uptime_in_seconds // 86400
-        hours = (uptime_in_seconds % 86400) // 3600
-        minutes = (uptime_in_seconds % 3600) // 60
-        formatted_uptime = f"{days} Days, {str(hours).zfill(2)} Hours, and {str(minutes).zfill(2)} Mins"
+            status = server_info_data['result']['info']['server_state']
+            status_count = int(server_info_data['result']['info']['state_accounting']['full']['transitions'])
+            status_overflow = int(server_info_data['result']['info']['jq_trans_overflow']) 
+            version = server_info_data['result']['info']['build_version']
+            status_time = int(server_info_data['result']['info']['server_state_duration_us']) / 1000000
+            #node_size = server_info_data['result']['info'].get('node_size', 'unknown') # provide a fallback default, just in case the admin port isn't used/working
+            ledger = server_info_data['result']['info'].get('validated_ledger', {}).get('seq', 0)
+            ledgers = server_info_data['result']['info']['complete_ledgers']
+            peers = server_info_data['result']['info']['peers']
+            network = server_info_data['result']['info'].get('network_id', 0) # Mainnet doesn't provide a network id, so default 0
+        
+            uptime_in_seconds = server_info_data['result']['info']['uptime']
+            days = uptime_in_seconds // 86400
+            hours = (uptime_in_seconds % 86400) // 3600
+            minutes = (uptime_in_seconds % 3600) // 60
+            formatted_uptime = f"{days} Days, {str(hours).zfill(2)} Hours, and {str(minutes).zfill(2)} Mins"
+        except Exception as e:
+            # If there's an error set all to 0
+            print(f"error occurred querying node: {e}")
+            status = status_count = status_overflow = version = status_time = ledger = ledgers = peers = network = formatted_uptime = 0
 
         # read node config file
-        node_config_data = extract_node_config(node_config_path)
-        node_size = node_config_data['node_size']
-        node_type = node_config_data['node_db_type']
-        node_history = node_config_data['ledger_history']
+        try:
+            node_config_data = extract_node_config(node_config_path)
+            node_size = node_config_data['node_size']
+            node_type = node_config_data['node_db_type']
+            node_history = node_config_data['ledger_history']
+        except Exception as e:
+            # If there's an error set all to 0
+            print(f"error occurred querying node config file: {e}")
+            node_size = node_type = node_history = 0
 
         if type == 'validator':
             feature_result = subprocess.run([xrpl, "feature"], capture_output=True, text=True)
@@ -115,19 +125,17 @@ def get_xrpl_server_info(key, timenow):
 
         # get cpu usage of the node process
         try:
-            cpu_usage_current = run_command("top -b -n 1 -p $(pgrep -u " + os.path.basename(xrpl) + " " + os.path.basename(xrpl) + ") | awk '/" + os.path.basename(xrpl) + "/{print $9}'")
-            cpu_check = float(cpu_usage_current)
+            cpu_usage_current = float(run_command("top -b -n 1 -p $(pgrep -u " + os.path.basename(xrpl) + " " + os.path.basename(xrpl) + ") | awk '/" + os.path.basename(xrpl) + "/{print $9}'"))
         except Exception as e:
             # If there's an error set it to 100, like if top doesn't respond properly
-            print(f"error occurred trying to get cpu data: {e}")
+            print(f"error occurred trying to get cpu usage data (is node status ok?): {e}")
             cpu_usage_current = 100
         cpu_data.append(cpu_usage_current)
         if len(cpu_data) > data_point_amount: cpu_data.pop(0)
 
         # get total cpu core count
         try:
-            cpu_cores = run_command("cat /proc/cpuinfo | grep processor | wc -l")
-            cpu_cores_check = float(cpu_usage_current)
+            cpu_cores = float(run_command("cat /proc/cpuinfo | grep processor | wc -l"))
         except Exception as e:
             # If there's an error set it to 100, like if top doesn't respond properly
             print(f"error occurred trying to get cpu core count data: {e}")
@@ -135,8 +143,7 @@ def get_xrpl_server_info(key, timenow):
 
         # get total cpu speed
         try:
-            cpu_speed = run_command("cat /proc/cpuinfo | grep 'cpu MHz' | head -n 1 | awk '{print int($4)}'")
-            cpu_speed_check = float(cpu_usage_current)
+            cpu_speed = float(run_command("cat /proc/cpuinfo | grep 'cpu MHz' | head -n 1 | awk '{print int($4)}'"))
         except Exception as e:
             # If there's an error set it to 0, like if cat location doesn't respond properly
             print(f"error occurred trying to get cpu core speed data: {e}")
@@ -144,8 +151,7 @@ def get_xrpl_server_info(key, timenow):
 
         # get system ram usage 
         try:
-            ram_usage_current = run_command("free | awk '/Mem:/ {printf(\"%.2f\"), $3/$2 * 100}'")
-            ram_check = float(ram_usage_current)
+            ram_usage_current = float(run_command("free | awk '/Mem:/ {printf(\"%.2f\"), $3/$2 * 100}'"))
         except Exception as e:
             # If there's an error, set it to 100, like if free doesn't respond properly
             print(f"error occurred trying to get ram usage data: {e}")
@@ -155,8 +161,7 @@ def get_xrpl_server_info(key, timenow):
 
         # get total ram available
         try:
-            ram_total = run_command("free | awk '/Mem:/ {print $2/1024/1024}'")
-            ram_total_check = float(ram_total)
+            ram_total = float(run_command("free | awk '/Mem:/ {print $2/1024/1024}'"))
         except Exception as e:
             # If there's an error, set it to 0, like if free doesn't respond properly
             print(f"error occurred trying to get ram total data: {e}")
@@ -164,9 +169,8 @@ def get_xrpl_server_info(key, timenow):
 
         # get hard drive usage % and total hard drive size
         try:
-            hdd_usage_current = run_command("df -h . | awk 'NR==2{print $5}'")
+            hdd_usage_current = float(run_command("df -h . | awk 'NR==2{print $5}'"))
             hdd_total = run_command("df -h . | awk 'NR==2{print $2}' | sed 's/[A-Za-z]//g'")
-            hdd_check = float(hdd_usage_current)
         except Exception as e:
             # If there's an error, set it to 100, like if df doesn't respond properly
             print(f"error occurred trying to get hdd_usage data: {e}")
@@ -175,8 +179,7 @@ def get_xrpl_server_info(key, timenow):
         if len(hdd_data) > data_point_amount: hdd_data.pop(0)
 
         try:
-            swp_usage_current = run_command("free | awk '/Swap:/ {if ($2 > 0) printf(\"%.2f\", $3/$2 * 100); else print \"0.00\"}'")
-            swp_check = float(swp_usage_current)
+            swp_usage_current = float(run_command("free | awk '/Swap:/ {if ($2 > 0) printf(\"%.2f\", $3/$2 * 100); else print \"0.00\"}'"))
         except Exception as e:
             # If there's an error, set it to 0, like if swp isn't setup etc
             print(f"error occurred trying to get hdd_swp data: {e}")
@@ -185,8 +188,7 @@ def get_xrpl_server_info(key, timenow):
         if len(swp_data) > data_point_amount: swp_data.pop(0)
 
         try:
-            hddio_current = run_command("iostat -c 1 2 | awk '/^ / { print $4 }' | tail -1")
-            hddio_check = float(hddio_current)
+            hddio_current = float(run_command("iostat -c 1 2 | awk '/^ / { print $4 }' | tail -1"))
         except Exception as e:
             # If there's an error, set to 100, like if iosat isn't installed, or there isn't a response
             print(f"error occurred trying to get hdd_io data: {e}")
