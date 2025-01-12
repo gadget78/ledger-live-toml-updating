@@ -135,7 +135,7 @@ def get_xrpl_server_info(key, timenow):
 
         # get total cpu core count
         try:
-            cpu_cores = float(run_command("cat /proc/cpuinfo | grep processor | wc -l"))
+            cpu_cores = int(run_command("cat /proc/cpuinfo | grep processor | wc -l"))
         except Exception as e:
             # If there's an error set it to 100, like if top doesn't respond properly
             print(f"error occurred trying to get cpu core count data: {e}")
@@ -161,7 +161,7 @@ def get_xrpl_server_info(key, timenow):
 
         # get total ram available
         try:
-            ram_total = float(run_command("free | awk '/Mem:/ {print $2/1024/1024}'"))
+            ram_total = int(run_command("free | awk '/Mem:/ {print $2/1024/1024}'"))
         except Exception as e:
             # If there's an error, set it to 0, like if free doesn't respond properly
             print(f"error occurred trying to get ram total data: {e}")
@@ -170,7 +170,7 @@ def get_xrpl_server_info(key, timenow):
         # get hard drive usage % and total hard drive size
         try:
             hdd_usage_current = float(run_command("df -h . | awk 'NR==2{print $5}'"))
-            hdd_total = run_command("df -h . | awk 'NR==2{print $2}' | sed 's/[A-Za-z]//g'")
+            hdd_total = run_command("df -h . | awk 'NR==2{print $2}'")
         except Exception as e:
             # If there's an error, set it to 100, like if df doesn't respond properly
             print(f"error occurred trying to get hdd_usage data: {e}")
@@ -235,7 +235,7 @@ PEERS = "{peers}"
 
 CPU_CORES = "{cpu_cores}"
 CPU_SPEED = "{cpu_speed}"
-RAM_TOTAL = "{ram_total}"
+RAM_TOTAL = "{ram_total}G"
 HDD_TOTAL = "{hdd_total}"
 
 CPU = "{cpu_data}"
