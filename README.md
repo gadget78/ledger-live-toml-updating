@@ -2,11 +2,11 @@ Use your validator/Node to send information to your webhost to update your toml 
 
 No connection (no holes) to your validator or node,
 
-update every promt from ledger activitiy (via key ledger by default) via the listener.py module
+update every prompt from ledger activity (via key ledger by default) via the listener.py module
 
 or in timed intervals, by setting 'load-type' within in the update.py file to standalone, and running the update.py direct (instead of listener.py)
 
-Be more transparent. Display your validator info, load, amendments, organization and principle. all Hands free, and automatted
+Be more transparent. Display your validator info, load, amendments, organization and principle. all Hands free, and automated
 
 Works on xrpl mainnet, xahau, testnet
 
@@ -39,11 +39,12 @@ Modify the following lines:
 
  - `xrpl` = 'xahaud' # Replace with your XRPL node executable eg. "rippled" or "xahaud"
  - `load_type` = 'standalone' # option of 'standalone' or 'listener', when in standalone it uses a built in timer to trigger the update, and 'listener' will do do one update a stop.
- - `mode` = 'node' # option of 'node' or 'validator', when using validator type, it checks/logs the AMMENDMENTS, and saves toml via API, 'node' has no ammendments and saves locally
+ - `mode` = 'node' # option of 'node' or 'validator', when using validator type, it checks/logs the AMENDMENTS, and saves toml via API, 'node' has no amendments and saves locally
  - `wait_time` = 900 # wait time before re-creating .toml (in seconds)
  - `data_point_amount` = 6 # amount of data points to retain in .toml file, (useful for limiting graph data to a day)
  - `api_url` = 'https://yourhost.com/toml.php'  # Replace with your API URL (when in validator mode)
  - `api_key` = 'key'  # Replace with your API key, this can be anything you want, you need to update the php script to match
+ - `node_config_path` = '/opt/xahaud/etc/xahaud.cfg' # path to node .cfg file, for use in data gathering
  - `file_path` = '/home/www/.well-known/xahau.toml' # path to local .toml file (for use in node mode)
  - `allowlist_path` = '/root/xahl-node/nginx_allowlist.conf' # allow list path, for use in connections output (node mode)
  - `websocket_port` = '6008' # port thats used for websocket (for use in connections, in node mode)
@@ -84,7 +85,7 @@ To run the script you have many options
 - or another method, have `load_mode = 'listener'` set in update.py file, and then setup a cronjob with the time frame you want,
  for example a entry of `*/15 * * * * /usr/bin/python3 /root/xahl-node/updater.py` would run updater every 15 minutes.
 
-- or manuall by a simple `python3 update.py` (make sure file has correct run permission `chmod +x update.py`)
+- or manually by a simple `python3 update.py` (make sure file has correct run permission `chmod +x update.py`)
 
 ### Stopping the Script:
 
