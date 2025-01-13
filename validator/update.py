@@ -161,7 +161,7 @@ def get_xrpl_server_info(key, timenow):
 
         # get total ram available
         try:
-            ram_total = int(run_command("free | awk '/Mem:/ {print $2/1024/1024}'"))
+            ram_total = float(run_command("free | awk '/Mem:/ {print $2/1024/1024}'"))
         except Exception as e:
             # If there's an error, set it to 0, like if free doesn't respond properly
             print(f"error occurred trying to get ram total data: {e}")

@@ -31,7 +31,7 @@ Python3 requires: requests
 
 Optional text editor: nano
 
-If you want to use this JUST for you Node, then you can do that by JUST using the updater.py file. and running python3 update.py
+If you want to use this JUST for your Node, then you can do that by JUST using the update.py file. and running python3 update.py
 Upload Pre-existing Files: Upload update.py and listener.py to the validator server or use nano to create these files and paste the contents accordingly, or you can git clone.
 
 ### Editing update.py:
