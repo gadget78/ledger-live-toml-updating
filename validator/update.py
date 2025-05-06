@@ -1,5 +1,5 @@
 import ast
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import os
 import requests
@@ -125,7 +125,7 @@ def get_xrpl_server_info(key, timenow):
 
         # get cpu usage of the node process
         try:
-            cpu_usage_current = float(run_command("top -b -n 1 -p $(pgrep -u " + os.path.basename(xrpl) + " " + os.path.basename(xrpl) + ") | awk '/" + os.path.basename(xrpl) + "/{print $9}'"))
+            cpu_usage_current = float(run_command("top -b -n 1 -p $(pgrep " + os.path.basename(xrpl) + ") | awk '/" + os.path.basename(xrpl) + "/{print $9}'"))
         except Exception as e:
             # If there's an error set it to 100, like if top doesn't respond properly
             print(f"error occurred trying to get cpu usage data (is node status ok?): {e}")
@@ -326,7 +326,7 @@ if __name__ == "__main__":
 
     if mode == 'node':
         while True:
-            info = get_xrpl_server_info(False, datetime.utcnow())
-            update_toml_file(info, datetime.utcnow())
+            info = get_xrpl_server_info(False, datetime.now(timezone.utc))
+            update_toml_file(info, datetime.now(timezone.utc))
             if load_type == 'listener': break
             else: time.sleep(wait_time)
